@@ -1,0 +1,15 @@
+version: '3.7'
+services:
+  flask:
+    image: webapp-flask
+    build: ./flask
+    container_name: myflaskalt
+
+  nginx:
+    image: webapp-nginx
+    build: ./nginx
+    container_name: mynginxalt
+    ports:
+      - 8080:80
+    depends_on:
+      - flask
