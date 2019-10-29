@@ -208,7 +208,54 @@ curl http://localhost:8080/hello
 {"hello": "world"}
 
 
-
 This is command used to get ip address of nginx container 
+------------------------------------------------------------------------------------------------
 docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mynginxalt
+
+
+For the nginx container, you can use app.conf configuration to perform two tasks 
+1. Pass requests to the backend application (port 8080)
+2. Pass HTTPS requests (port 443) to the backend application (port 8080)
+
+# app.conf
+-------------------------------------------------------------------------------------------------
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name _;
+    root /usr/share/nginx/html;
+
+  	index index.html index.htm index.nginx-debian.html;
+	# SSL configuration
+	#
+	# listen 443 ssl default_server;
+	# listen [::]:443 ssl default_server;
+	#
+	# Note: You should disable gzip for SSL traffic.
+	# See: https://bugs.debian.org/773332
+	#
+	# Read up on ssl_ciphers to ensure a secure configuration.
+	# See: https://bugs.debian.org/765782
+	#
+
+  location / { try_files $uri @app; }
+
+  location @app {
+        *Pass HTTP (port 80) requests to the backend application (port 8080)
+        include uwsgi_params;
+        uwsgi_pass flask:8080;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+
+
+        proxy_set_header X-Forwarded-Proto https;
+
+        *Pass HTTPS requests (port 443) to the backend application (port 8080)
+        if($http_x_forwarded_proto) = 'https') {
+            return 301 uwsgi_pass flask:8080;
+        }
+    }
+}
 
